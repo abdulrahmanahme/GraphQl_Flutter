@@ -1,65 +1,64 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:graph_ql_flutter/Queryes/characters_query.dart';
+import 'package:graph_ql_flutter/home_screen/person_card.dart';
+import 'package:graph_ql_flutter/model/characters_model.dart';
+import 'package:graphql_flutter/graphql_flutter.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  CharactersModel? charactersModel;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          ...List.generate(
-            3,
-            (index) => Padding(
-              padding: const EdgeInsets.all(5.0),
-              child: PersonCard(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class PersonCard extends StatelessWidget {
-  const PersonCard({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 200,
-      width: 200,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        image: DecorationImage(
-          image: NetworkImage(
-              "https://rickandmortyapi.com/api/character/avatar/152.jpeg"),
-          fit: BoxFit.cover,
+      body: Query(
+        options: QueryOptions(
+          document: gql(charactersQuery),
         ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        spacing: 2,
-        children: [
-          Text(
-            'Motoy',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 20,
-              color: Colors.blueGrey,
-            ),
-          ),
-          Text(
-            'Motoy',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 20,
-              color: Colors.blueGrey,
-            ),
-          )
-        ],
+        builder: (QueryResult result,
+            {VoidCallback? refetch, FetchMore? fetchMore}) {
+          if (result.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (result.hasException) {
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Center(
+                  child: Text(
+                result.exception!.toString(),
+                textAlign: TextAlign.center,
+              )),
+            );
+          }
+
+          if (result.data != null) {
+            charactersModel = CharactersModel.fromJson(result.data!);
+          }
+          return ListView.builder(
+              itemCount: charactersModel?.characters.results.length,
+              itemBuilder: (context, index) {
+                var item = charactersModel?.characters.results;
+                final characterData = item![index];
+                log('ss${characterData.name}');
+
+                return Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: PersonCard(
+                    name: characterData.name,
+                    image: characterData.image,
+                    type: characterData.type,
+                  ),
+                );
+              });
+        },
       ),
     );
   }
